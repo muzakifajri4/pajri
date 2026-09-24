@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Sekolah - Konversi PDF</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .loading-spinner { border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top: 3px solid #fff; width: 24px; height: 24px; animation: spin 0.8s linear infinite; }
+        @keyframes spin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+        .drop-zone { border: 2px dashed #cbd5e1; transition: all 0.3s ease; }
+        .drop-zone:hover, .drop-zone.drag-over { border-color: #3b82f6; background-color: #eff6ff; }
+        .spin-loader { border: 3px solid #e5e7eb; border-top: 3px solid #3b82f6; border-radius: 50%; width: 20px; height: 20px; animation: spin 0.8s linear infinite; display: inline-block; }
+        .tab-btn { transition: all 0.2s ease; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <div class="container mx-auto px-4 py-6 max-w-7xl">
+        <div class="text-center mb-6">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">🏫 Aplikasi Sekolah</h1>
+            <p class="text-gray-600 text-lg">Konversi PDF BKU, BHP dan BHM ke Excel</p>
+        </div>
+
+        <!-- Sub-tabs Konversi -->
+        <div class="flex gap-1 mb-6 bg-white rounded-xl p-1 shadow-sm max-w-md mx-auto">
+            <button onclick="switchTab('bku')" id="tabBKU" class="tab-btn flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold bg-blue-600 text-white shadow-sm">
+                📊 BKU
+            </button>
+            <button onclick="switchTab('bhp')" id="tabBHP" class="tab-btn flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold text-gray-600 hover:bg-gray-100">
+                📦 BHP
+            </button>
+            <button onclick="switchTab('bhm')" id="tabBHM" class="tab-btn flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold text-gray-600 hover:bg-gray-100">
+                🖥️ BHM
+            </button>
+        </div>
+
+        <!-- Upload Card BKU -->
+        <div id="uploadSectionBKU" class="tab-content">
+            <div class="bg-white rounded-2xl shadow-xl p-6 md:p-8 mb-6">
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Pilih File PDF BKU</label>
+                    <div id="dropZoneBKU" class="drop-zone rounded-xl p-8 text-center cursor-pointer" onclick="document.getElementById('fileInputBKU').click()">
+                        <div class="flex flex-col items-center gap-3">
+                            <div class="bg-blue-100 p-4 rounded-full"><svg class="w-10 h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg></div>
+                            <div><p class="text-lg font-medium text-gray-700">Seret file PDF BKU di sini</p><p class="text-sm text-gray-500 mt-1">atau klik untuk memilih file</p></div>
+                        </div>
+                    </div>
+                    <input type="file" id="fileInputBKU" accept=".pdf" class="hidden" onchange="handleFileSelect(event,'bku')">
+                    <div id="fileInfoBKU" class="hidden mt-4 p-4 bg-gray-50 rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <svg class="w-8 h-8 text-red-500" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/><path d="M14 2v6h6"/></svg>
+                                <div><p id="fileNameBKU" class="font-medium text-gray-700"></p><p id="fileSizeBKU" class="text-sm text-gray-500"></p></div>
+                            </div>
+                            <button onclick="removeFile('bku')" class="text-gray-400 hover:text-red-500"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                        </div>
+                    </div>
+                </div>
+                <button id="convertBtnBKU" onclick="convertFile('bku')" class="w-full py-3 px-6 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    Konversi BKU ke Excel
+                </button>
+            </div>
+        </div>
+
+        <!-- Upload Card BHP -->
+        <div id="uploadSectionBHP" class="tab-content hidden">
+            <div class="bg-white rounded-2xl shadow-xl p-6 md:p-8 mb-6">
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Pilih File PDF BHP</label>
+                    <div id="dropZoneBHP" class="drop-zone rounded-xl p-8 text-center cursor-pointer" onclick="document.getElementById('fileInputBHP').click()">
+                        <div class="flex flex-col items-center gap-3">
+                            <div class="bg-green-100 p-4 rounded-full"><svg class="w-10 h-10 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg></div>
+                            <div><p class="text-lg font-medium text-gray-700">Seret file PDF BHP di sini</p><p class="text-sm text-gray-500 mt-1">atau klik untuk memilih file</p></div>
+                        </div>
+                    </div>
+                    <input type="file" id="fileInputBHP" accept=".pdf" class="hidden" onchange="handleFileSelect(event,'bhp')">
+                    <div id="fileInfoBHP" class="hidden mt-4 p-4 bg-gray-50 rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <svg class="w-8 h-8 text-red-500" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/><path d="M14 2v6h6"/></svg>
+                                <div><p id="fileNameBHP" class="font-medium text-gray-700"></p><p id="fileSizeBHP" class="text-sm text-gray-500"></p></div>
+                            </div>
+                            <button onclick="removeFile('bhp')" class="text-gray-400 hover:text-red-500"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                        </div>
+                    </div>
+                </div>
+                <button id="convertBtnBHP" onclick="convertFile('bhp')" class="w-full py-3 px-6 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    Konversi BHP ke Excel
+                </button>
+            </div>
+        </div>
+
+        <!-- Upload Card BHM -->
+        <div id="uploadSectionBHM" class="tab-content hidden">
+            <div class="bg-white rounded-2xl shadow-xl p-6 md:p-8 mb-6">
+                <div class="mb-6">
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">Pilih File PDF BHM</label>
+                    <div id="dropZoneBHM" class="drop-zone rounded-xl p-8 text-center cursor-pointer" onclick="document.getElementById('fileInputBHM').click()">
+                        <div class="flex flex-col items-center gap-3">
+                            <div class="bg-purple-100 p-4 rounded-full"><svg class="w-10 h-10 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg></div>
+                            <div><p class="text-lg font-medium text-gray-700">Seret file PDF BHM di sini</p><p class="text-sm text-gray-500 mt-1">atau klik untuk memilih file</p></div>
+                        </div>
+                    </div>
+                    <input type="file" id="fileInputBHM" accept=".pdf" class="hidden" onchange="handleFileSelect(event,'bhm')">
+                    <div id="fileInfoBHM" class="hidden mt-4 p-4 bg-gray-50 rounded-lg">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                <svg class="w-8 h-8 text-red-500" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/><path d="M14 2v6h6"/></svg>
+                                <div><p id="fileNameBHM" class="font-medium text-gray-700"></p><p id="fileSizeBHM" class="text-sm text-gray-500"></p></div>
+                            </div>
+                            <button onclick="removeFile('bhm')" class="text-gray-400 hover:text-red-500"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+                        </div>
+                    </div>
+                </div>
+                <button id="convertBtnBHM" onclick="convertFile('bhm')" class="w-full py-3 px-6 bg-purple-600 text-white font-semibold rounded-xl hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    Konversi BHM ke Excel
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading -->
+        <div id="loadingSection" class="hidden text-center py-12">
+            <div class="loading-spinner mx-auto mb-4 border-blue-600"></div>
+            <p class="text-gray-600 font-medium">Sedang memproses...</p>
+        </div>
+
+        <!-- Result -->
+        <div id="resultSection" class="hidden">
+            <div class="bg-white rounded-2xl shadow-xl p-6 md:p-8 mb-6">
+                <div class="bg-green-50 border border-green-200 rounded-xl p-6 mb-6">
+                    <div class="flex items-center gap-3 mb-4">
+                        <svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <div><h3 id="resultTitle" class="font-semibold text-green-800 text-lg">Konversi Berhasil!</h3><p id="resultMessage" class="text-green-600 text-sm"></p></div>
+                    </div>
+                    <div id="resultLinks" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                </div>
+                <button onclick="resetForm()" class="w-full py-3 px-6 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-all">Konversi File Lain</button>
+            </div>
+        </div>
+
+        <!-- Error -->
+        <div id="errorSection" class="hidden">
+            <div class="bg-white rounded-2xl shadow-xl p-6 md:p-8 mb-6">
+                <div class="bg-red-50 border border-red-200 rounded-xl p-6 mb-6">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <div><h3 class="font-semibold text-red-800">Gagal Mengkonversi</h3><p id="errorMessage" class="text-red-600 text-sm mt-1"></p></div>
+                    </div>
+                </div>
+                <button onclick="resetForm()" class="w-full py-3 px-6 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-all">Coba Lagi</button>
+            </div>
+        </div>
+
+        <!-- History -->
+        <div id="historyCard" class="bg-white rounded-2xl shadow-xl p-6 md:p-8 mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-lg font-semibold text-gray-800 flex items-center gap-2"><span>📂</span> Riwayat Download</h2>
+                <div class="flex items-center gap-3">
+                    <div id="historyLoading" class="spin-loader hidden"></div>
+                    <button id="deleteSelectedBtn" onclick="deleteSelected()" class="hidden px-4 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        Hapus Terpilih
+                    </button>
+                </div>
+            </div>
+            <div id="historyContent">
+                <div id="historyEmpty" class="text-center py-8 text-gray-400">
+                    <svg class="w-16 h-16 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    <p>Belum ada riwayat download</p><p class="text-sm mt-1">Hasil konversi akan muncul di sini</p>
+                </div>
+                <div id="historyList" class="hidden space-y-3"></div>
+            </div>
+        </div>
+
+        <div class="text-center mt-8 text-sm text-gray-400"><p>Aplikasi Sekolah &copy; 2026</p></div>
+    </div>
+
+    <script>
+        // ==================== DATA ====================
+        let selectedFile = { bku: null, bhp: null, bhm: null };
+        let currentTab = 'bku';
+
+        // ==================== KONVERSI TAB SWITCHING ====================
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+
+            // Reset hanya tombol konversi (tabBKU, tabBHP)
+            document.getElementById('tabBKU').className = 'tab-btn flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold text-gray-600 hover:bg-gray-100';
+            document.getElementById('tabBHP').className = 'tab-btn flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold text-gray-600 hover:bg-gray-100';
+            document.getElementById('tabBHM').className = 'tab-btn flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold text-gray-600 hover:bg-gray-100';
+
+            document.getElementById('loadingSection').classList.add('hidden');
+            document.getElementById('resultSection').classList.add('hidden');
+            document.getElementById('errorSection').classList.add('hidden');
+
+            if (tab === 'bku') {
+                document.getElementById('uploadSectionBKU').classList.remove('hidden');
+                document.getElementById('tabBKU').className = 'tab-btn flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold bg-blue-600 text-white shadow-sm';
+                loadHistory('bku');
+            } else if (tab === 'bhm') {
+                document.getElementById('uploadSectionBHM').classList.remove('hidden');
+                document.getElementById('tabBHM').className = 'tab-btn flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold bg-purple-600 text-white shadow-sm';
+                loadHistory('bhm');
+            } else {
+                document.getElementById('uploadSectionBHP').classList.remove('hidden');
+                document.getElementById('tabBHP').className = 'tab-btn flex-1 py-2.5 px-4 rounded-lg text-sm font-semibold bg-blue-600 text-white shadow-sm';
+                loadHistory('bhp');
+            }
+        }
+
+        // ==================== KONVERSI PDF ====================
+        // Drop zones
+        ['BKU','BHP','BHM'].forEach(type => {
+            const dz = document.getElementById('dropZone' + type);
+            dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+            dz.addEventListener('dragleave', e => { e.preventDefault(); dz.classList.remove('drag-over'); });
+            dz.addEventListener('drop', e => {
+                e.preventDefault(); dz.classList.remove('drag-over');
+                if (e.dataTransfer.files.length > 0) validateAndSetFile(e.dataTransfer.files[0], type.toLowerCase());
+            });
+        });
+
+        function handleFileSelect(e, type) { if (e.target.files[0]) validateAndSetFile(e.target.files[0], type); }
+
+        function validateAndSetFile(file, type) {
+            if (!file.name.toLowerCase().endsWith('.pdf')) return alert('File harus PDF.');
+            if (file.size > 32*1024*1024) return alert('Maksimal 32MB.');
+            selectedFile[type] = file;
+            document.getElementById('fileName' + type.toUpperCase()).textContent = file.name;
+            document.getElementById('fileSize' + type.toUpperCase()).textContent = formatFileSize(file.size);
+            document.getElementById('fileInfo' + type.toUpperCase()).classList.remove('hidden');
+            document.getElementById('convertBtn' + type.toUpperCase()).disabled = false;
+            document.getElementById('errorSection').classList.add('hidden');
+        }
+
+        function removeFile(type) {
+            selectedFile[type] = null;
+            document.getElementById('fileInput' + type.toUpperCase()).value = '';
+            document.getElementById('fileInfo' + type.toUpperCase()).classList.add('hidden');
+            document.getElementById('convertBtn' + type.toUpperCase()).disabled = true;
+        }
+
+        async function convertFile(type) {
+            const file = selectedFile[type];
+            if (!file) return;
+
+            document.getElementById('uploadSectionBKU').classList.add('hidden');
+            document.getElementById('uploadSectionBHP').classList.add('hidden');
+            document.getElementById('uploadSectionBHM').classList.add('hidden');
+            document.getElementById('errorSection').classList.add('hidden');
+            document.getElementById('resultSection').classList.add('hidden');
+            document.getElementById('loadingSection').classList.remove('hidden');
+
+            const formData = new FormData();
+            formData.append('pdf_file', file);
+            const endpoints = { bku: '/api/convert-bku', bhp: '/api/convert-bhp', bhm: '/api/convert-bhm' };
+            const endpoint = endpoints[type] || '/api/convert-bku';
+
+            try {
+                const res = await fetch(endpoint, { method: 'POST', body: formData });
+                const result = await res.json();
+                if (result.success) {
+                    showResult(result, type);
+                    loadHistory(type);
+                } else {
+                    showError(result.message || 'Gagal', type);
+                }
+            } catch(e) { showError('Kesalahan: ' + e.message, type); }
+            document.getElementById('loadingSection').classList.add('hidden');
+        }
+
+        function showResult(r, type) {
+            const titles = { bku: '📊 BKU Berhasil Dikonversi!', bhp: '📦 BHP Berhasil Dikonversi!', bhm: '🖥️ BHM Berhasil Dikonversi!' };
+            document.getElementById('resultTitle').textContent = titles[type] || 'Konversi Berhasil!';
+            document.getElementById('resultMessage').textContent = `File ${selectedFile[type].name} berhasil dikonversi untuk ${r.month} ${r.year}`;
+            
+            const links = document.getElementById('resultLinks');
+            links.innerHTML = '';
+            
+            if (type === 'bku') {
+                links.innerHTML = `
+                    <a href="/download/${encodeURIComponent(r.bku_file)}" class="block p-4 bg-white rounded-lg border border-green-200 hover:border-green-400 hover:shadow-md transition-all">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-8 h-8 text-green-600" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/><path d="M14 2v6h6"/><path d="M8 13h8v2H8zm0 4h5v2H8zm0-8h3v2H8z"/></svg>
+                            <div><p class="font-medium text-gray-800">📊 BKU Excel</p><p class="text-sm text-gray-500">${r.bku_file}</p></div>
+                        </div>
+                    </a>
+                    <a href="/download/${encodeURIComponent(r.template_file)}" class="block p-4 bg-white rounded-lg border border-green-200 hover:border-green-400 hover:shadow-md transition-all">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-8 h-8 text-blue-600" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/><path d="M14 2v6h6"/><path d="M12 13v4m0 0l-2-2m2 2l2-2"/></svg>
+                            <div><p class="font-medium text-gray-800">📋 Template Import</p><p class="text-sm text-gray-500">${r.template_file}</p></div>
+                        </div>
+                    </a>`;
+            } else if (type === 'bhm') {
+                links.innerHTML = `
+                    <a href="/download/${encodeURIComponent(r.bhm_file)}" class="block p-4 bg-white rounded-lg border border-green-200 hover:border-green-400 hover:shadow-md transition-all">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-8 h-8 text-green-600" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/><path d="M14 2v6h6"/><path d="M8 13h8v2H8zm0 4h5v2H8zm0-8h3v2H8z"/></svg>
+                            <div><p class="font-medium text-gray-800">🖥️ BHM Excel</p><p class="text-sm text-gray-500">${r.bhm_file}</p></div>
+                        </div>
+                    </a>
+                    <a href="/download/${encodeURIComponent(r.template_file)}" class="block p-4 bg-white rounded-lg border border-green-200 hover:border-green-400 hover:shadow-md transition-all">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-8 h-8 text-blue-600" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/><path d="M14 2v6h6"/><path d="M12 13v4m0 0l-2-2m2 2l2-2"/></svg>
+                            <div><p class="font-medium text-gray-800">📋 Template Import BM ARKAS</p><p class="text-sm text-gray-500">${r.template_file}</p></div>
+                        </div>
+                    </a>`;
+            } else {
+                links.innerHTML = `
+                    <a href="/download/${encodeURIComponent(r.bhp_file)}" class="block p-4 bg-white rounded-lg border border-green-200 hover:border-green-400 hover:shadow-md transition-all md:col-span-2">
+                        <div class="flex items-center gap-3">
+                            <svg class="w-8 h-8 text-green-600" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/><path d="M14 2v6h6"/><path d="M8 13h8v2H8zm0 4h5v2H8zm0-8h3v2H8z"/></svg>
+                            <div><p class="font-medium text-gray-800">📦 BHP Excel</p><p class="text-sm text-gray-500">${r.bhp_file}</p></div>
+                        </div>
+                    </a>`;
+            }
+            document.getElementById('resultSection').classList.remove('hidden');
+        }
+
+        // BUG FIX: showError now receives the type parameter and shows the correct upload section
+        function showError(msg, type) {
+            document.getElementById('errorMessage').textContent = msg;
+            document.getElementById('errorSection').classList.remove('hidden');
+            
+            // Show the correct upload section based on the current tab
+            document.getElementById('uploadSectionBKU').classList.add('hidden');
+            document.getElementById('uploadSectionBHP').classList.add('hidden');
+            document.getElementById('uploadSectionBHM').classList.add('hidden');
+            const showId = type === 'bku' ? 'uploadSectionBKU' : (type === 'bhm' ? 'uploadSectionBHM' : 'uploadSectionBHP');
+            document.getElementById(showId).classList.remove('hidden');
+            
+            document.getElementById('loadingSection').classList.add('hidden');
+            document.getElementById('resultSection').classList.add('hidden');
+        }
+
+        // BUG FIX: resetForm now preserves the current tab instead of always switching to BKU
+        function resetForm() {
+            ['bku','bhp','bhm'].forEach(t => {
+                selectedFile[t] = null;
+                document.getElementById('fileInput' + t.toUpperCase()).value = '';
+                document.getElementById('fileInfo' + t.toUpperCase()).classList.add('hidden');
+                document.getElementById('convertBtn' + t.toUpperCase()).disabled = true;
+            });
+            document.getElementById('errorSection').classList.add('hidden');
+            document.getElementById('resultSection').classList.add('hidden');
+            document.getElementById('loadingSection').classList.add('hidden');
+            switchTab(currentTab);
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' bytes';
+            if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+            return (bytes/(1024*1024)).toFixed(1) + ' MB';
+        }
+
+        // History
+        async function loadHistory(type) {
+            const loading = document.getElementById('historyLoading');
+            const empty = document.getElementById('historyEmpty');
+            const list = document.getElementById('historyList');
+            const deleteBtn = document.getElementById('deleteSelectedBtn');
+            loading.classList.remove('hidden');
+            try {
+                const res = await fetch('/api/history?type=' + (type || currentTab));
+                const data = await res.json();
+                loading.classList.add('hidden');
+                if (data.length === 0) {
+                    empty.classList.remove('hidden');
+                    list.classList.add('hidden');
+                    deleteBtn.classList.add('hidden');
+                    return;
+                }
+                empty.classList.add('hidden');
+                list.classList.remove('hidden');
+                list.innerHTML = data.map(item => createItem(item)).join('');
+                updateDeleteButton();
+            } catch(e) { loading.classList.add('hidden'); }
+        }
+
+        function createItem(item) {
+            const names = {'JANUARI':'Januari','FEBRUARI':'Februari','MARET':'Maret','APRIL':'April','MEI':'Mei','JUNI':'Juni','JULI':'Juli','AGUSTUS':'Agustus','SEPTEMBER':'September','OKTOBER':'Oktober','NOVEMBER':'November','DESEMBER':'Desember'};
+            const month = names[item.month] || item.month;
+            const icon = item.type === 'bhp' ? '📦' : (item.type === 'bhm' ? '🖥️' : '📊');
+            const label = item.type === 'bhp' ? 'BHP' : (item.type === 'bhm' ? 'BHM' : 'BKU');
+            
+            let downloads = '';
+            if (item.type === 'bhp') {
+                downloads = `<a href="/download/${encodeURIComponent(item.bku_file)}" class="inline-flex items-center gap-1 px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 text-sm font-medium">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    ${label}</a>`;
+            } else if (item.type === 'bhm') {
+                downloads = `
+                    <a href="/download/${encodeURIComponent(item.bku_file)}" class="inline-flex items-center gap-1 px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 text-sm font-medium">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        BHM</a>
+                    <a href="/download/${encodeURIComponent(item.template_file)}" class="inline-flex items-center gap-1 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 text-sm font-medium">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        Template</a>`;
+            } else {
+                downloads = `
+                    <a href="/download/${encodeURIComponent(item.bku_file)}" class="inline-flex items-center gap-1 px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 text-sm font-medium">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        BKU</a>
+                    <a href="/download/${encodeURIComponent(item.template_file)}" class="inline-flex items-center gap-1 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 text-sm font-medium">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        Template</a>`;
+            }
+            
+            return `<div class="bg-gray-50 rounded-xl p-4 border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all">
+                <div class="flex items-center justify-between flex-wrap gap-3">
+                    <div class="flex items-center gap-3">
+                        <input type="checkbox" value="${item.id}" onchange="updateDeleteButton()" class="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 cursor-pointer">
+                        <div class="bg-blue-100 p-3 rounded-lg"><svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg></div>
+                        <div><p class="font-semibold text-gray-800">${icon} ${month} ${item.year}</p><p class="text-xs text-gray-400">${item.date} • ${label}</p></div>
+                    </div>
+                    <div class="flex gap-2">${downloads}</div>
+                </div>
+            </div>`;
+        }
+
+        function updateDeleteButton() {
+            const cbs = document.querySelectorAll('#historyList input[type="checkbox"]:checked');
+            const btn = document.getElementById('deleteSelectedBtn');
+            if (cbs.length > 0) {
+                btn.classList.remove('hidden');
+                btn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg> Hapus (${cbs.length})`;
+            } else btn.classList.add('hidden');
+        }
+
+        async function deleteSelected() {
+            const cbs = document.querySelectorAll('#historyList input[type="checkbox"]:checked');
+            if (cbs.length === 0) return;
+            if (!confirm(`Hapus ${cbs.length} item? File Excel juga akan dihapus.`)) return;
+            const ids = Array.from(cbs).map(cb => parseInt(cb.value));
+            try {
+                const res = await fetch('/api/delete', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ids}) });
+                const result = await res.json();
+                if (result.success) loadHistory(); else alert(result.message);
+            } catch(e) { alert('Error: ' + e.message); }
+        }
+
+        // ==================== INISIALISASI ====================
+        document.addEventListener('DOMContentLoaded', () => {
+            switchTab('bku');
+        });
+    </script>
+</body>
+</html>
